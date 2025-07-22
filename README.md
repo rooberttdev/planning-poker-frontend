@@ -34,7 +34,7 @@ npm install socket.io-client@4.8.1 rxjs@7.8.1
 ng serve
 ```
 
-1. Acesse ``
+1. Acesse `https://planning-poker-frontend-peach.vercel.app/`
 
 ## Estrutura do Projeto
 
