@@ -5,9 +5,10 @@ import { RoomJoinComponent } from './components/room-join/room-join.component';
 import { RoomSetupComponent } from './components/room-setup/room-setup.component';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent },
+  { path: '', redirectTo: '/home', pathMatch: 'full' },
+  { path: 'home', component: HomeComponent },
   { path: 'setup', component: RoomSetupComponent },
   { path: 'join/:id', component: RoomJoinComponent },
   { path: 'room/:id', component: RoomComponent },
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: '/home', pathMatch: 'full' },
 ];
