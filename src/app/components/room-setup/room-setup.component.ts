@@ -4,14 +4,23 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SocketService } from '../../services/socket.service';
 import { Subject } from 'rxjs';
-import { takeUntil, filter } from 'rxjs/operators';
+import { takeUntil, filter, take } from 'rxjs/operators';
+import { SessionService } from '../../services/session.service';
+import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
 
 @Component({
   selector: 'app-room-setup',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AlertModalComponent],
+  providers: [SessionService],
   template: `
     <div class="setup-container">
+      <app-alert-modal
+        *ngIf="showAlert"
+        [message]="alertMessage"
+        (close)="onAlertSetupClose()"
+      >
+      </app-alert-modal>
       <header class="setup-header">
         <button class="back-btn" (click)="goBack()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -390,6 +399,8 @@ export class RoomSetupComponent implements OnInit, OnDestroy {
   showCustomDeck: boolean = false;
   customCards: string = '';
   isCreating: boolean = false;
+  showAlert = false;
+  alertMessage = '';
 
   private destroy$ = new Subject<void>();
   private gameNames = [
@@ -403,7 +414,11 @@ export class RoomSetupComponent implements OnInit, OnDestroy {
     'Scrum Estimation',
   ];
 
-  constructor(private router: Router, private socketService: SocketService) {}
+  constructor(
+    private router: Router,
+    private socketService: SocketService,
+    private session: SessionService
+  ) {}
 
   ngOnInit(): void {
     const userName = localStorage.getItem('userName');
@@ -414,8 +429,9 @@ export class RoomSetupComponent implements OnInit, OnDestroy {
 
     this.socketService.room$
       .pipe(
-        takeUntil(this.destroy$),
-        filter((room) => room !== null && this.isCreating)
+        filter((room) => room !== null && this.isCreating),
+        take(1),
+        takeUntil(this.destroy$)
       )
       .subscribe((room) => {
         localStorage.setItem('currentRoom', JSON.stringify(room));
@@ -436,11 +452,14 @@ export class RoomSetupComponent implements OnInit, OnDestroy {
       .subscribe((error) => {
         if (error) {
           this.isCreating = false;
-          alert('Erro ao criar sala: ' + error);
+          this.alertMessage = 'Erro ao criar sala ';
+          this.showAlert = true;
         }
       });
   }
-
+  onAlertSetupClose() {
+    this.showAlert = false;
+  }
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
@@ -523,7 +542,6 @@ export class RoomSetupComponent implements OnInit, OnDestroy {
     if (this.gameName.trim()) {
       if (this.isCreating) return;
       this.isCreating = true;
-
       const moderatorName = localStorage.getItem('userName') || '';
       localStorage.removeItem('currentRoom');
       localStorage.removeItem('gameConfig');

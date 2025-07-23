@@ -98,7 +98,6 @@ import { CommonModule } from '@angular/common';
         font-weight: 700;
       }
 
-      /* Special card styles */
       .card-button:nth-child(13) {
         /* ? card */
         background: rgba(139, 92, 246, 0.3);

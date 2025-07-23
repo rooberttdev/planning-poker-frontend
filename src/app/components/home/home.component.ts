@@ -234,15 +234,6 @@ export class HomeComponent {
     this.socketService.error$.subscribe((error: string | null) => {
       this.error = error;
     });
-
-    this.socketService.room$.subscribe((room: Room | null) => {
-      if (room) {
-        localStorage.setItem('currentRoom', JSON.stringify(room));
-        localStorage.setItem('userRole', 'moderator');
-        localStorage.setItem('userName', this.moderatorName);
-        this.router.navigate(['/room', room.id]);
-      }
-    });
   }
 
   createRoom(): void {

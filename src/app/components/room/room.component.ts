@@ -8,10 +8,13 @@ import { VoteResult } from '../../interfaces/room.interface';
 import { Issue } from '../../interfaces/issue.interface';
 import { IssuesService } from '../../services/issues.service';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { take, takeUntil } from 'rxjs/operators';
 import { VotingCardsComponent } from '../voting-cards/voting-cards.component';
 import { VotingTableComponent } from '../voting-table/voting-table.component';
 import { SocketService } from '../../services/socket.service';
+import { SessionService } from '../../services/session.service';
+import { AlertModalComponent } from '../../shared/alert-modal/alert-modal.component';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-room',
@@ -23,9 +26,24 @@ import { SocketService } from '../../services/socket.service';
     VotingTableComponent,
     InviteModalComponent,
     IssuesPanelComponent,
+    AlertModalComponent,
+    ConfirmModalComponent,
   ],
   template: `
     <div class="room-container">
+      <app-alert-modal
+        *ngIf="showAlert"
+        [message]="alertMessage"
+        (close)="onAlertClose()"
+      >
+      </app-alert-modal>
+      <app-confirm-modal
+        *ngIf="showConfirm"
+        [message]="confirmMessage"
+        (accept)="onConfirmAccept()"
+        (cancel)="onConfirmCancel()"
+      >
+      </app-confirm-modal>
       <header class="room-header">
         <div class="header-left">
           <div class="logo">
@@ -1123,12 +1141,20 @@ export class RoomComponent implements OnInit, OnDestroy {
   showTaskModal: boolean = false;
   showIssuesPanel: boolean = false;
   selectedCard: number | null = null;
+  showAlert = false;
+  alertMessage = '';
+  shouldRedirectHome = false;
+  showConfirm = false;
+  confirmMessage = '';
+
+  private onConfirmAction: () => void = () => {};
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private socketService: SocketService,
-    private issuesService: IssuesService
+    private issuesService: IssuesService,
+    private session: SessionService
   ) {}
 
   ngOnInit(): void {
@@ -1169,32 +1195,26 @@ export class RoomComponent implements OnInit, OnDestroy {
         (error.includes('não encontrada') ||
           error.includes('Sala não encontrada'))
       ) {
-        localStorage.removeItem('currentRoom');
-        localStorage.removeItem('gameConfig');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('userRole');
-        alert(
-          'Esta sala não existe mais. Você será redirecionado para a página inicial.'
-        );
-        this.router.navigate(['/']);
-        return;
+        this.session.clearSession();
+        this.alertMessage =
+          'Esta sala não existe mais. Você será redirecionado para a página inicial.';
+        this.shouldRedirectHome = true;
+        this.showAlert = true;
       }
     });
 
-    this.socketService.roomEnded$.subscribe((roomEnded) => {
-      if (roomEnded) {
-        localStorage.removeItem('currentRoom');
-        localStorage.removeItem('gameConfig');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('userRole');
+    this.socketService.roomEnded$
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.session.clearSession();
         this.issuesService.clearIssues();
-        alert('A sala foi encerrada pelo moderador.');
-        this.router.navigate(['/']);
-      }
-    });
+        this.alertMessage = 'A sala foi encerrada pelo moderador.';
+        this.shouldRedirectHome = true;
+        this.showAlert = true;
+      });
 
     if (!this.userName) {
-      this.router.navigate(['/']);
+      this.router.navigateByUrl('/home');
       return;
     }
 
@@ -1246,11 +1266,7 @@ export class RoomComponent implements OnInit, OnDestroy {
     this.socketService.syncIssues$
       .pipe(takeUntil(this.destroy$))
       .subscribe((all) => this.issuesService.loadFromBackend(all));
-    if (!this.isModerator) {
-      this.socketService.joinRoom(this.roomId, this.userName);
-    } else {
-      console.log('Moderador verificando se sala ainda existe...');
-    }
+    this.socketService.joinRoom(this.roomId, this.userName);
   }
 
   ngOnDestroy(): void {
@@ -1339,7 +1355,6 @@ export class RoomComponent implements OnInit, OnDestroy {
     this.socketService.socket.on(
       'participantVoted',
       (data: { participant: string }) => {
-        console.log('🗳️ Participante votou:', data.participant);
         this.participantVotes.set(data.participant, { hasVoted: true });
       }
     );
@@ -1358,7 +1373,20 @@ export class RoomComponent implements OnInit, OnDestroy {
       this.participantVotes.set(participant, { hasVoted: false });
     });
   }
+  onAlertClose() {
+    this.showAlert = false;
+    if (this.shouldRedirectHome) {
+      this.router.navigateByUrl('/home');
+    }
+  }
+  onConfirmAccept() {
+    this.showConfirm = false;
+    this.onConfirmAction();
+  }
 
+  onConfirmCancel() {
+    this.showConfirm = false;
+  }
   getTotalParticipants(): number {
     return this.participantCount;
   }
@@ -1386,18 +1414,15 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   onAddIssue(title: string): void {
-    console.log('➕ Adicionando nova issue:', title);
     this.issuesService.addIssue(title);
   }
 
   onStartVotingIssue(issue: Issue): void {
-    console.log('🎯 Iniciando votação para issue:', issue);
     this.issuesService.startVoting(issue);
     this.socketService.startRound(this.roomId, issue.title, issue.description);
   }
 
   onVoteAgain(issue: Issue): void {
-    console.log('🔄 Votando novamente para issue:', issue);
     this.issuesService.resetVoting(issue);
     this.issuesService.startVoting(issue);
     this.socketService.startRound(this.roomId, issue.title, issue.description);
@@ -1430,7 +1455,6 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   onVote(value: number): void {
-    console.log('🗳️ Enviando voto:', value);
     this.socketService.vote(this.roomId, this.userName, value);
     this.hasUserVoted = true;
     this.participantVotes.set(this.userName, { hasVoted: true, value });
@@ -1573,12 +1597,10 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   revealVotes(): void {
-    console.log('📊 Revelando votos');
     this.socketService.revealVotes(this.roomId);
   }
 
   nextRound(): void {
-    console.log('⏭️ Próxima rodada');
     this.socketService.nextRound(this.roomId);
   }
 
@@ -1676,32 +1698,25 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   endRoom(): void {
-    if (
-      confirm(
-        'Tem certeza que deseja encerrar esta sala? Todos os participantes serão desconectados.'
-      )
-    ) {
+    this.confirmMessage =
+      'Tem certeza que deseja encerrar esta sala? Todos os participantes serão desconectados.';
+    this.onConfirmAction = () => {
       this.socketService.endRoom(this.roomId);
-
-      localStorage.removeItem('currentRoom');
-      localStorage.removeItem('gameConfig');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userRole');
+      this.session.clearSession();
       this.issuesService.clearIssues();
-
-      this.router.navigate(['/']);
-    }
+      this.router.navigateByUrl('/home');
+    };
+    this.showConfirm = true;
   }
 
   leaveRoom(): void {
-    if (!confirm('Tem certeza que deseja encerrar esta sala?')) return;
-    this.socketService.leaveRoom(this.roomId, this.userName);
-
-    localStorage.removeItem('currentRoom');
-    localStorage.removeItem('gameConfig');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
-    this.issuesService.clearIssues();
-    this.router.navigate(['']);
+    this.confirmMessage = 'Tem certeza que deseja sair da sala?';
+    this.onConfirmAction = () => {
+      this.socketService.leaveRoom(this.roomId, this.userName);
+      this.session.clearSession();
+      this.issuesService.clearIssues();
+      this.router.navigateByUrl('/home');
+    };
+    this.showConfirm = true;
   }
 }

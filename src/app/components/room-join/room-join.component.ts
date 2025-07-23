@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../../services/socket.service';
+import { SessionService } from '../../services/session.service';
 
 @Component({
   selector: 'app-room-join',
@@ -384,10 +385,12 @@ export class RoomJoinComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private socketService: SocketService
+    private socketService: SocketService,
+    private session: SessionService
   ) {}
 
   ngOnInit(): void {
+    this.session.clearSession();
     this.roomId = this.route.snapshot.params['id'];
     this.roomTitle = 'Carregando informações da sala...';
 
@@ -442,9 +445,6 @@ export class RoomJoinComponent implements OnInit {
         participants.length > 0 &&
         participants.includes(this.displayName.trim())
       ) {
-        console.log(
-          '✅ Participante adicionado com sucesso, redirecionando...'
-        );
         const roomData = {
           id: this.roomId,
           moderator: '',

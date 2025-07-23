@@ -158,7 +158,6 @@ export class InviteModalComponent {
         this.copyText = 'Copiar';
       }, 2000);
     } catch (err) {
-      // Fallback for older browsers
       input.select();
       document.execCommand('copy');
       this.copyText = 'Copiado!';

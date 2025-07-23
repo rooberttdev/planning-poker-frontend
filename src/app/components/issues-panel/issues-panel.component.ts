@@ -20,7 +20,6 @@ import { Issue } from '../../interfaces/issue.interface';
           </span>
         </div>
         <button class="close-btn" (click)="close.emit()">
-          <!-- X icon -->
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path
               d="M18 6L6 18M6 6L18 18"
@@ -84,7 +83,6 @@ import { Issue } from '../../interfaces/issue.interface';
                 *ngIf="issue.status === 'completed' && issue.result != null"
                 class="issue-result"
               >
-                <!-- ícone -->
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z"
@@ -93,8 +91,6 @@ import { Issue } from '../../interfaces/issue.interface';
                 </svg>
                 {{ formatVoteValue(issue.result) }}
               </div>
-
-              <!-- MENU DE CONTEXTO -->
               <div *ngIf="openMenus.has(issue.id)" class="issue-context-menu">
                 <ul>
                   <li
@@ -120,7 +116,6 @@ import { Issue } from '../../interfaces/issue.interface';
                 class="btn btn-outline add-issue-btn"
                 (click)="showAddForm = true"
               >
-                <!-- plus icon -->
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M12 5V19M5 12H19"
@@ -235,7 +230,6 @@ import { Issue } from '../../interfaces/issue.interface';
         padding: 20px;
       }
 
-      /* === LISTA DE ISSUES === */
       .issues-list {
         display: flex;
         flex-direction: column;
@@ -306,8 +300,6 @@ import { Issue } from '../../interfaces/issue.interface';
         color: #10b981;
         font-size: 0.875rem;
       }
-
-      /* === MENU DE CONTEXTO === */
       .issue-context-menu {
         position: absolute;
         top: 32px;
@@ -333,7 +325,6 @@ import { Issue } from '../../interfaces/issue.interface';
         background: rgba(99, 102, 241, 0.1);
       }
 
-      /* === FORM DE ADIÇÃO === */
       .add-issue-section {
         margin-top: 20px;
       }
@@ -394,7 +385,6 @@ import { Issue } from '../../interfaces/issue.interface';
         background: rgba(99, 102, 241, 0.05);
       }
 
-      /* scrollbar */
       .panel-content::-webkit-scrollbar {
         width: 6px;
       }
