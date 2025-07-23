@@ -18,7 +18,7 @@ export class SocketService {
   private voteCountSubject = new BehaviorSubject<number>(0);
   private voteResultsSubject = new BehaviorSubject<VoteResult[]>([]);
   private roomInfoSubject = new BehaviorSubject<any>(null);
-  private roomEndedSubject = new BehaviorSubject<boolean>(false);
+  private roomEndedSubject = new Subject<void>();
   private issueUpdatesSubject = new BehaviorSubject<{
     action: string;
     issue: any;
@@ -112,7 +112,7 @@ export class SocketService {
     });
 
     this._socket.on('roomEnded', () => {
-      this.roomEndedSubject.next(true);
+      this.roomEndedSubject.next();
     });
     this._socket.on('syncIssues', (allIssues: Issue[]) => {
       this.syncIssuesSubject.next(allIssues);
@@ -162,7 +162,7 @@ export class SocketService {
     return this.roomInfoSubject.asObservable();
   }
 
-  get roomEnded$(): Observable<boolean> {
+  get roomEnded$(): Observable<void> {
     return this.roomEndedSubject.asObservable();
   }
 
